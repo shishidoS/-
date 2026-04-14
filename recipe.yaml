@@ -1,0 +1,14 @@
+RecipeFormatVersion: '2020-01-25'
+ComponentName: 'com.shishido.PhysicalVerification'
+ComponentVersion: 'GITHUB_RUN_NUMBER' # 後でActionsで置換します
+ComponentDescription: 'Physical GPIO Verification Component'
+ComponentPublisher: 'Shishido'
+ComponentConfiguration:
+  DefaultConfiguration: {}
+Manifests:
+  - Platform:
+      os: linux
+    Artifacts:
+      - URI: 's3://iot-test-pipe/artifacts/main.py'
+    Lifecycle:
+      Run: 'python3 {artifacts:path}/main.py'
