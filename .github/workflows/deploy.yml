@@ -1,4 +1,4 @@
-name: Deploy Study Code to S3
+name: IoT CD Pipeline
 
 on:
   push:
@@ -8,7 +8,6 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
@@ -20,9 +19,11 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ap-northeast-1
 
-      - name: Sync directory to S3
+      - name: Upload Component to S3
         run: |
-          # カレントディレクトリ(.)の中身をS3のstudyフォルダへアップロード
-          # .gitフォルダなどは除外します
-          aws s3 sync . s3://${{ secrets.S3_BUCKET_NAME }}/study --delete --exclude ".git/*" --exclude ".github/*"
-          echo "Upload complete!"
+          echo "Syncing code to S3..."
+          aws s3 sync ./study s3://iot-test-pipe/study/
+
+      - name: Deploy to Greengrass (Placeholder)
+        run: |
+          echo "後でここにGreengrassへのデプロイコマンドを追記します"
