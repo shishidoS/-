@@ -3,7 +3,7 @@ import sys
 import datetime
 import boto3
 from botocore.exceptions import ClientError
-
+# --リトライ*1
 # --- 設定項目 ---
 # CloudWatch Logsの設定
 LOG_GROUP = '/aws/greengrass/PhysicalVerification'
