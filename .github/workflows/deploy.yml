@@ -2,28 +2,39 @@ name: IoT CD Pipeline
 
 on:
   push:
-    branches:
-      - main
+    branches: [ main ]
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
+      - uses: actions/checkout@v3
 
+      # 1. AWS認証
       - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v2
+        uses: aws-actions/configure-aws-credentials@v1
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ap-northeast-1
 
-      - name: Upload Component to S3
-        run: |
-          echo "Syncing code to S3..."
-          aws s3 sync ./study s3://iot-test-pipe/study/
+      # 2. S3へスクリプトをアップロード
+      - name: Upload Artifact to S3
+        run: aws s3 cp main.py s3://iot-test-pipe/artifacts/main.py
 
-      - name: Deploy to Greengrass (Placeholder)
+      # 3. レシピ内のバージョンをGitHubの実行番号で置換
+      - name: Update Recipe Version
+        run: sed -i 's/GITHUB_RUN_NUMBER/1.0.${{ github.run_number }}/g' recipe.yaml
+
+      # 4. Greengrassコンポーネントの新規バージョン作成
+      - name: Create Greengrass Component
         run: |
-          echo "後でここにGreengrassへのデプロイコマンドを追記します"
+          aws greengrassv2 create-component-version \
+            --inline-recipe fileb://recipe.yaml
+
+      # 5. ラズパイへのデプロイ実行
+      - name: Create Deployment
+        run: |
+          aws greengrassv2 create-deployment \
+            --target-arn arn:aws:iot:ap-northeast-1:738695451683:thing/RaspberryPi-1 \
+            --components '{"com.shishido.PhysicalVerification": {"componentVersion": "1.0.${{ github.run_number }}"}}'
