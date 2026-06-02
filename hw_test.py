@@ -5,7 +5,7 @@ from gpiozero import RGBLED
 
 SPEC = {
     "name": "ステータスRGBモジュール",
-    "pins": {"red": 17, "green": 27, "blue": 22}
+    "pins": {"red": 77, "green": 27, "blue": 22}
 }
 
 def run_hardware_check():
