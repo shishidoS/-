@@ -22,7 +22,7 @@ def run_hardware_check():
         status_led.color = (1, 1, 1)
         time.sleep(0.1)
 
-        # 3. リソースの解放!
+        # 3. リソースの解放
         status_led.off()
         status_led.close()
 
