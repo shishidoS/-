@@ -94,11 +94,39 @@ def physical_test():
 
     print("=== 物理検証プロセス終了 ===")
 
-# --- 実行エントリポイント ---
-def run():
+# --- 実行 ---
+# （上の log_to_cloudwatch などの関数はそのまま）
+
+def run():  # ← ここを physical_test から run に変えるだけ！
     """GPIOを制御して物理検証を行い、結果を報告するメインロジック"""
     print("=== 物理検証プロセス開始 ===")
-    # (中略: 元のphysical_testの中身そのまま)
+    log_to_cloudwatch("START: 物理検証スクリプトが起動しました。")
+
+    try:
+        if GPIO_AVAILABLE:
+            print(f"GPIO {LED_PIN} を制御中...")
+            led = LED(LED_PIN)
+            led.on()
+            log_to_cloudwatch(f"ACTION: GPIO {LED_PIN} を ON にしました。")
+            time.sleep(2)
+            led.off()
+            log_to_cloudwatch(f"ACTION: GPIO {LED_PIN} を OFF にしました。")
+            result_msg = "SUCCESS: GPIO制御による物理動作検証に成功しました。"
+        else:
+            print("Simulation Mode: 物理デバイスをスキップします。")
+            time.sleep(2)
+            result_msg = "SUCCESS: シミュレーションモードでの検証が完了しました。"
+
+        print(result_msg)
+        log_to_cloudwatch(result_msg)
+
+    except Exception as e:
+        error_msg = f"FAILURE: 物理検証中にエラーが発生しました: {str(e)}"
+        print(error_msg)
+        log_to_cloudwatch(error_msg)
+        sys.exit(1)
+
+    print("=== 物理検証プロセス終了 ===")
 
 # --- 実行エントリポイント ---
 if __name__ == "__main__":
