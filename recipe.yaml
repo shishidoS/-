@@ -11,6 +11,10 @@ Manifests:
   - Platform:
       os: linux
     Artifacts:
+      # 必要な3つのファイルをすべてダウンロードさせる
       - URI: 's3://iot-test-pipe/artifacts/main.py'
+      - URI: 's3://iot-test-pipe/artifacts/entrypoint.py'
+      - URI: 's3://iot-test-pipe/artifacts/hw_test.py'
     Lifecycle:
-      Run: 'python3 {artifacts:path}/main.py'
+      # 最初に起動するのは絶対に司令塔（entrypoint）！
+      Run: 'python3 {artifacts:path}/entrypoint.py'
