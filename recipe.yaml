@@ -11,10 +11,9 @@ Manifests:
   - Platform:
       os: linux
     Artifacts:
-      # 必要な3つのファイルをすべてダウンロードさせる
-      - URI: "s3://iot-test-pipe/artifacts/main.py"
-      - URI: "s3://iot-test-pipe/artifacts/entrypoint.py"
-      - URI: "s3://iot-test-pipe/artifacts/hw_test.py"
+      - URI: "s3://iot-test-pipe/main.py"
+      - URI: "s3://iot-test-pipe/entrypoint.py"
+      - URI: "s3://iot-test-pipe/hw_test.py"
     Lifecycle:
       Run:
         Script: "python3 {artifacts:path}/entrypoint.py"

@@ -2,7 +2,7 @@ name: IoT CD Pipeline
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
 
 jobs:
   deploy:
@@ -18,15 +18,17 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ap-northeast-1
 
-      # 2. S3へスクリプトをアップロード
-      - name: Upload Artifact to S3
-        run: |
-          aws s3 cp main.py s3://iot-test-pipe/artifacts/main.py
-          aws s3 cp entrypoint.py s3://iot-test-pipe/artifacts/entrypoint.py
-          aws s3 cp hw_test.py s3://iot-test-pipe/artifacts/hw_test.py
-      # 3. レシピ内のバージョンをGitHubの実行番号で置換
+      # 2. レシピ内のバージョンを動的置換
       - name: Update Recipe Version
         run: sed -i 's/GITHUB_RUN_NUMBER/1.0.${{ github.run_number }}/g' recipe.yaml
+
+      # 3. S3へスクリプトと「置換後のレシピ」をアップロード (パスをルート直下に修正)
+      - name: Upload Artifacts to S3
+        run: |
+          aws s3 cp main.py s3://iot-test-pipe/main.py
+          aws s3 cp entrypoint.py s3://iot-test-pipe/entrypoint.py
+          aws s3 cp hw_test.py s3://iot-test-pipe/hw_test.py
+          aws s3 cp recipe.yaml s3://iot-test-pipe/recipe.yaml
 
       # 4. Greengrassコンポーネントの新規バージョン作成
       - name: Create Greengrass Component
