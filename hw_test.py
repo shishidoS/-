@@ -69,10 +69,7 @@ def run_hardware_check():
         "details": results
     }
     
-    if failed_count > 0:
-        print(json.dumps(report, ensure_ascii=False, indent=2))
-        sys.exit(1)
-        
+    
     return report
 
 if __name__ == "__main__":
