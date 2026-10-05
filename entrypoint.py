@@ -5,6 +5,8 @@ from gpiozero import RGBLED
 import hw_test
 import main
 import boto3
+import os
+os.environ["GPIOZERO_PIN_FACTORY"] = "lgpio"
 
 def start_pipeline():
     print("=== :rocket: デプロイパイプライン起動 ===")
