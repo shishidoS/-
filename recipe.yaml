@@ -1,8 +1,8 @@
-RecipeFormatVersion: '2020-01-25'
-ComponentName: 'com.shishido.PhysicalVerification'
-ComponentVersion: 'GITHUB_RUN_NUMBER'
-ComponentDescription: 'Physical GPIO Verification Component'
-ComponentPublisher: 'Shishido'
+RecipeFormatVersion: "2020-01-25"
+ComponentName: "com.shishido.PhysicalVerification"
+ComponentVersion: "GITHUB_RUN_NUMBER"
+ComponentDescription: "Physical GPIO Verification Component"
+ComponentPublisher: "Shishido"
 ComponentDependencies:
   aws.greengrass.TokenExchangeService:
     VersionRequirement: ">=2.0.0"
@@ -12,9 +12,10 @@ Manifests:
       os: linux
     Artifacts:
       # 必要な3つのファイルをすべてダウンロードさせる
-      - URI: 's3://iot-test-pipe/artifacts/main.py'
-      - URI: 's3://iot-test-pipe/artifacts/entrypoint.py'
-      - URI: 's3://iot-test-pipe/artifacts/hw_test.py'
+      - URI: "s3://iot-test-pipe/artifacts/main.py"
+      - URI: "s3://iot-test-pipe/artifacts/entrypoint.py"
+      - URI: "s3://iot-test-pipe/artifacts/hw_test.py"
     Lifecycle:
-      # 最初に起動するのは絶対に司令塔（entrypoint）！
-      Run: 'python3 {artifacts:path}/entrypoint.py'
+      Run:
+        Script: "python3 {artifacts:path}/entrypoint.py"
+        RequiresPrivilege: true

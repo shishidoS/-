@@ -1,10 +1,11 @@
+import os
+os.environ["GPIOZERO_PIN_FACTORY"] = "lgpio"
 import json
 import time
 import sys
 from datetime import datetime
 from gpiozero import RGBLED, DigitalInputDevice
-import os
-os.environ["GPIOZERO_PIN_FACTORY"] = "lgpio"
+
 
 SPEC = {
     "name": "ステータスRGBモジュール",
