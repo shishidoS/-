@@ -14,6 +14,9 @@ Manifests:
       - URI: "s3://iot-test-pipe/main.py"
       - URI: "s3://iot-test-pipe/entrypoint.py"
       - URI: "s3://iot-test-pipe/hw_test.py"
+      # --- 【追加】Phase 1の計測用ファイル ---
+      - URI: "s3://iot-test-pipe/dummy_payload.dat"
+      - URI: "s3://iot-test-pipe/deploy_timestamp.txt"
     Lifecycle:
       Run:
         Script: "python3 {artifacts:path}/entrypoint.py"

@@ -18,17 +18,27 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ap-northeast-1
 
+      # 1.5 【Phase 1】 ペイロードとタイムスタンプの生成
+      - name: Generate Payload and Timestamp
+        run: |
+          # 50MBのランダムダミーデータを生成（AIモデルの代わり）
+          dd if=/dev/urandom of=dummy_payload.dat bs=1M count=50
+          # デプロイ開始時刻をミリ秒単位でファイルに記録
+          date +%s%3N > deploy_timestamp.txt
+
       # 2. レシピ内のバージョンを動的置換
       - name: Update Recipe Version
         run: sed -i 's/GITHUB_RUN_NUMBER/1.0.${{ github.run_number }}/g' recipe.yaml
 
-      # 3. S3へスクリプトと「置換後のレシピ」をアップロード (パスをルート直下に修正)
+      # 3. S3へアーティファクトをアップロード (追加ファイルを含む)
       - name: Upload Artifacts to S3
         run: |
           aws s3 cp main.py s3://iot-test-pipe/main.py
           aws s3 cp entrypoint.py s3://iot-test-pipe/entrypoint.py
           aws s3 cp hw_test.py s3://iot-test-pipe/hw_test.py
           aws s3 cp recipe.yaml s3://iot-test-pipe/recipe.yaml
+          aws s3 cp dummy_payload.dat s3://iot-test-pipe/dummy_payload.dat
+          aws s3 cp deploy_timestamp.txt s3://iot-test-pipe/deploy_timestamp.txt
 
       # 4. Greengrassコンポーネントの新規バージョン作成
       - name: Create Greengrass Component

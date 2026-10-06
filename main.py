@@ -3,6 +3,7 @@ import sys
 import datetime
 import subprocess
 import json
+import os   # ←ファイルの存在確認用に追加
 import boto3
 from botocore.exceptions import ClientError
 
@@ -67,30 +68,64 @@ def update_dashboard_error():
 
 def run():
     print("=== メインシステム稼働開始 ===")
-    log_to_cloudwatch("START: メインシステムが稼働を開始しました。継続的な物理監視を実行します。")
+    log_to_cloudwatch("START: メインシステムが稼働を開始しました。ペイロードの読み込みを開始します。")
 
     try:
+        # --- 【Phase 1】 ペイロード読み込みとE2Eラグ計測 ---
+        payload_path = "dummy_payload.dat"
+        timestamp_path = "deploy_timestamp.txt"
+        
+        # 1. ペイロードロード処理 (擬似的なAIモデル展開)
+        load_start = time.time()
+        if os.path.exists(payload_path):
+            print(f"{payload_path} をメモリにロードしています...")
+            with open(payload_path, 'rb') as f:
+                dummy_data = f.read() # 50MBをメモリに一括展開
+            load_time = time.time() - load_start
+            print(f"ロード完了: {len(dummy_data)} bytes ({load_time:.3f}秒)")
+        else:
+            print("Warning: ペイロードファイルが見つかりません。")
+            load_time = 0
+
+        # 2. デプロイ開始からのE2Eラグ計算
+        e2e_ms = None
+        if os.path.exists(timestamp_path):
+            with open(timestamp_path, 'r') as f:
+                deploy_start_ms = int(f.read().strip())
+                current_ms = int(round(time.time() * 1000))
+                e2e_ms = current_ms - deploy_start_ms
+        
+        # 3. 結果をCloudWatchへ送信
+        if e2e_ms:
+            metrics_msg = f"METRICS: E2E Deploy Latency = {e2e_ms} ms, Payload Load Time = {load_time:.3f} s"
+        else:
+            metrics_msg = f"METRICS: Payload Load Time = {load_time:.3f} s (Local run or Timestamp missing)"
+            
+        print(metrics_msg)
+        log_to_cloudwatch(metrics_msg)
+        # --------------------------------------------------
+
+        # --- (以降は物理断線監視ループ) ---
         while True:
             # 1. 監視のために一瞬「青(22番)」をONにして電気を流す
             set_led("blue")
-            time.sleep(0.5) # 電圧が安定するまで少し待つ
+            time.sleep(0.5) 
             
-            # 2. 24番ピンで受信確認（電気が届いているか？）
+            # 2. 24番ピンで受信確認
             subprocess.run(["pinctrl", "set", FEEDBACK_PIN, "ip", "pd"], check=True)
             result = subprocess.run(["pinctrl", "get", FEEDBACK_PIN], capture_output=True, text=True)
             
             if "hi" in result.stdout:
-                # 正常：電気が届いたので「緑」にして待機
+                # 正常
                 set_led("green")
-                time.sleep(5) # 5秒ごとにチェック
+                time.sleep(5)
             else:
-                # 異常（断線）：「赤」にして、ダッシュボードを更新し、システムを落とす
+                # 異常
                 set_led("red")
                 error_msg = "CRITICAL FAILURE: 稼働中に物理的な断線を検知！システムを安全に停止します。"
                 print(error_msg)
                 log_to_cloudwatch(error_msg)
                 
-                # ここでS3を書き換えることで、ダッシュボードに断線が反映される！
                 update_dashboard_error()
                 sys.exit(1)
 
