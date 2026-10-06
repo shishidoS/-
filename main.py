@@ -3,7 +3,7 @@ import sys
 import datetime
 import subprocess
 import json
-import os   # ←ファイルの存在確認用に追加
+import os
 import boto3
 from botocore.exceptions import ClientError
 
@@ -72,8 +72,12 @@ def run():
 
     try:
         # --- 【Phase 1】 ペイロード読み込みとE2Eラグ計測 ---
-        payload_path = "dummy_payload.dat"
-        timestamp_path = "deploy_timestamp.txt"
+        
+        # 実行されている main.py 自身の絶対パスから、同じフォルダのパスを取得
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+        
+        payload_path = os.path.join(base_dir, "dummy_payload.dat")
+        timestamp_path = os.path.join(base_dir, "deploy_timestamp.txt")
         
         # 1. ペイロードロード処理 (擬似的なAIモデル展開)
         load_start = time.time()
