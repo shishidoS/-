@@ -8,8 +8,9 @@ import boto3
 from botocore.exceptions import ClientError
 
 # --- 設定項目 ---
+DEVICE_NAME = os.environ.get('AWS_IOT_THING_NAME', 'UnknownDevice')
 LOG_GROUP = '/aws/greengrass/PhysicalVerification'
-LOG_STREAM = 'RaspberryPi-1'
+LOG_STREAM = DEVICE_NAME
 REGION = 'ap-northeast-1'
 
 # RGBモジュールのピン設定（17, 27, 22）
@@ -45,6 +46,7 @@ def set_led(color):
 def update_dashboard_error():
     """断線検知時、ダッシュボード（S3）のJSONをFAILUREで上書きして赤くする"""
     report = {
+        "device_name": DEVICE_NAME,
         "timestamp": datetime.datetime.now().isoformat(),
         "overall_status": "FAILURE",
         "failed_count": 1,
@@ -58,11 +60,11 @@ def update_dashboard_error():
         s3 = boto3.client('s3')
         s3.put_object(
             Bucket='iot-test-pipe',
-            Key='status/result.json',
+            Key=f'status/result_{DEVICE_NAME}.json',
             Body=json.dumps(report, ensure_ascii=False).encode('utf-8'),
             ContentType='application/json'
         )
-        print("S3の検証レポートを異常状態(FAILURE)で上書きしました。ダッシュボードが赤くなります。")
+        print(f"S3の検証レポート({DEVICE_NAME})を異常状態(FAILURE)で上書きしました。ダッシュボードが赤くなります。")
     except Exception as e:
         print(f"S3更新エラー: {e}")
 

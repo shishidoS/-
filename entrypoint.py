@@ -2,6 +2,7 @@ import sys
 import time
 import json
 import subprocess
+import os
 import hw_test
 import main
 import boto3
@@ -20,6 +21,11 @@ def start_pipeline():
     time.sleep(1)
 
     report = hw_test.run_hardware_check()
+    
+    # デバイス名を環境変数から取得してJSONに追加
+    device_name = os.environ.get('AWS_IOT_THING_NAME', 'UnknownDevice')
+    report["device_name"] = device_name
+    
     report_json = json.dumps(report, indent=4, ensure_ascii=False)
 
     print("\n--- 📋 物理検証レポート (JSON) ---")
@@ -27,17 +33,17 @@ def start_pipeline():
     print("----------------------------------\n")
 
     try:
-        print("☁️️ AWS S3へ検証レポートを送信しています...")
+        print("☁ AWS S3へ検証レポートを送信しています...")
         s3 = boto3.client('s3')
         s3.put_object(
             Bucket='iot-test-pipe',
-            Key='status/result.json',
+            Key=f'status/result_{device_name}.json',
             Body=report_json.encode('utf-8'),
             ContentType='application/json'
         )
         print("✅ S3へのアップロードに成功しました！\n")
     except Exception as e:
-        print(f"⚠️️ S3へのアップロードに失敗しました: {e}\n")
+        print(f"⚠ S3へのアップロードに失敗しました: {e}\n")
 
     if report["overall_status"] == "FAILURE":
         # 状態2：異常検知（赤色点灯）
