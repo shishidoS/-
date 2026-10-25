@@ -46,9 +46,9 @@ jobs:
           aws greengrassv2 create-component-version \
             --inline-recipe fileb://recipe.yaml
 
-      # 5. ラズパイへのデプロイ実行
+      # 5. ラズパイへのデプロイ実行（★グループ全体への配信に修正）
       - name: Create Deployment
         run: |
           aws greengrassv2 create-deployment \
-            --target-arn arn:aws:iot:ap-northeast-1:738695451683:thing/RaspberryPi-1 \
+            --target-arn arn:aws:iot:ap-northeast-1:738695451683:thinggroup/RasPi-Group \
             --components '{"com.shishido.PhysicalVerification": {"componentVersion": "1.0.${{ github.run_number }}"}}'
