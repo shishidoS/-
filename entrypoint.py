@@ -3,14 +3,18 @@ import time
 import json
 import subprocess
 import os
+import shutil
 import hw_test
 import main
 import boto3
 
+# 環境に合わせてコマンドを自動選択
+GPIO_CMD = "pinctrl" if shutil.which("pinctrl") else "raspi-gpio"
+
 def set_led_color(color):
-    subprocess.run(["pinctrl", "set", "17", "op", "dh" if color == "red" else "dl"])
-    subprocess.run(["pinctrl", "set", "27", "op", "dh" if color == "green" else "dl"])
-    subprocess.run(["pinctrl", "set", "22", "op", "dh" if color == "blue" else "dl"])
+    subprocess.run([GPIO_CMD, "set", "17", "op", "dh" if color == "red" else "dl"])
+    subprocess.run([GPIO_CMD, "set", "27", "op", "dh" if color == "green" else "dl"])
+    subprocess.run([GPIO_CMD, "set", "22", "op", "dh" if color == "blue" else "dl"])
 
 def start_pipeline():
     print("=== 🚀 デプロイパイプライン起動 ===")

@@ -2,6 +2,7 @@ import json
 import time
 import sys
 import subprocess
+import shutil
 from datetime import datetime
 
 SPEC = {
@@ -10,19 +11,22 @@ SPEC = {
     "feedback_pin": "24"
 }
 
+# 環境に合わせてコマンドを自動選択
+GPIO_CMD = "pinctrl" if shutil.which("pinctrl") else "raspi-gpio"
+
 def set_led(color):
-    """ pinctrlコマンドでLEDを制御 (colorは 'red', 'green', 'blue', 'off') """
-    subprocess.run(["pinctrl", "set", SPEC["pins"]["red"], "op", "dh" if color == "red" else "dl"], check=True)
-    subprocess.run(["pinctrl", "set", SPEC["pins"]["green"], "op", "dh" if color == "green" else "dl"], check=True)
-    subprocess.run(["pinctrl", "set", SPEC["pins"]["blue"], "op", "dh" if color == "blue" else "dl"], check=True)
+    """ コマンドでLEDを制御 (colorは 'red', 'green', 'blue', 'off') """
+    subprocess.run([GPIO_CMD, "set", SPEC["pins"]["red"], "op", "dh" if color == "red" else "dl"], check=True)
+    subprocess.run([GPIO_CMD, "set", SPEC["pins"]["green"], "op", "dh" if color == "green" else "dl"], check=True)
+    subprocess.run([GPIO_CMD, "set", SPEC["pins"]["blue"], "op", "dh" if color == "blue" else "dl"], check=True)
 
 def check_feedback():
-    """ pinctrlコマンドでフィードバックピンの電圧を読み取る """
+    """ フィードバックピンの電圧を読み取る """
     # 入力(ip)モードに設定し、プルダウン(pd)を有効化
-    subprocess.run(["pinctrl", "set", SPEC["feedback_pin"], "ip", "pd"], check=True)
-    result = subprocess.run(["pinctrl", "get", SPEC["feedback_pin"]], capture_output=True, text=True)
-    # 読み取り結果に "hi" (High) が含まれていれば電圧検知
-    return "hi" in result.stdout
+    subprocess.run([GPIO_CMD, "set", SPEC["feedback_pin"], "ip", "pd"], check=True)
+    result = subprocess.run([GPIO_CMD, "get", SPEC["feedback_pin"]], capture_output=True, text=True)
+    # 読み取り結果に "hi" (Bookworm) または "level=1" (Bullseye) が含まれていれば電圧検知
+    return "hi" in result.stdout or "level=1" in result.stdout
 
 def run_hardware_check():
     results = []
@@ -32,7 +36,7 @@ def run_hardware_check():
         results.append({
             "name": "RGBモジュール制御権限",
             "status": "PASS",
-            "msg": "pinctrlによる直接リソース確保・出力OK"
+            "msg": f"{GPIO_CMD}による直接リソース確保・出力OK"
         })
 
         # 青色を点灯して断線監視テストを開始
@@ -68,7 +72,6 @@ def run_hardware_check():
         "failed_count": failed_count,
         "details": results
     }
-    
     
     return report
 

@@ -4,6 +4,7 @@ import datetime
 import subprocess
 import json
 import os
+import shutil
 import boto3
 from botocore.exceptions import ClientError
 
@@ -18,6 +19,9 @@ PIN_RED = "17"
 PIN_GREEN = "27"
 PIN_BLUE = "22"
 FEEDBACK_PIN = "24"  # 物理断線監視用
+
+# 環境に合わせてコマンドを自動選択
+GPIO_CMD = "pinctrl" if shutil.which("pinctrl") else "raspi-gpio"
 
 def log_to_cloudwatch(message):
     """CloudWatch Logsにメッセージを送信する"""
@@ -38,10 +42,10 @@ def log_to_cloudwatch(message):
         print(f"Failed to send log to CloudWatch: {e}")
 
 def set_led(color):
-    """pinctrlでRGB LEDを制御する"""
-    subprocess.run(["pinctrl", "set", PIN_RED, "op", "dh" if color == "red" else "dl"], check=True)
-    subprocess.run(["pinctrl", "set", PIN_GREEN, "op", "dh" if color == "green" else "dl"], check=True)
-    subprocess.run(["pinctrl", "set", PIN_BLUE, "op", "dh" if color == "blue" else "dl"], check=True)
+    """環境に応じたコマンドでRGB LEDを制御する"""
+    subprocess.run([GPIO_CMD, "set", PIN_RED, "op", "dh" if color == "red" else "dl"], check=True)
+    subprocess.run([GPIO_CMD, "set", PIN_GREEN, "op", "dh" if color == "green" else "dl"], check=True)
+    subprocess.run([GPIO_CMD, "set", PIN_BLUE, "op", "dh" if color == "blue" else "dl"], check=True)
 
 def update_dashboard_error():
     """断線検知時、ダッシュボード（S3）のJSONをFAILUREで上書きして赤くする"""
@@ -75,13 +79,11 @@ def run():
     try:
         # --- 【Phase 1】 ペイロード読み込みとE2Eラグ計測 ---
         
-        # 実行されている main.py 自身の絶対パスから、同じフォルダのパスを取得
         base_dir = os.path.dirname(os.path.abspath(__file__))
         
         payload_path = os.path.join(base_dir, "dummy_payload.dat")
         timestamp_path = os.path.join(base_dir, "deploy_timestamp.txt")
         
-        # 1. ペイロードロード処理 (擬似的なAIモデル展開)
         load_start = time.time()
         if os.path.exists(payload_path):
             print(f"{payload_path} をメモリにロードしています...")
@@ -93,7 +95,6 @@ def run():
             print("Warning: ペイロードファイルが見つかりません。")
             load_time = 0
 
-        # 2. デプロイ開始からのE2Eラグ計算
         e2e_ms = None
         if os.path.exists(timestamp_path):
             with open(timestamp_path, 'r') as f:
@@ -101,7 +102,6 @@ def run():
                 current_ms = int(round(time.time() * 1000))
                 e2e_ms = current_ms - deploy_start_ms
         
-        # 3. 結果をCloudWatchへ送信
         if e2e_ms:
             metrics_msg = f"METRICS: E2E Deploy Latency = {e2e_ms} ms, Payload Load Time = {load_time:.3f} s"
         else:
@@ -113,20 +113,17 @@ def run():
 
         # --- (以降は物理断線監視ループ) ---
         while True:
-            # 1. 監視のために一瞬「青(22番)」をONにして電気を流す
             set_led("blue")
             time.sleep(0.5) 
             
-            # 2. 24番ピンで受信確認
-            subprocess.run(["pinctrl", "set", FEEDBACK_PIN, "ip", "pd"], check=True)
-            result = subprocess.run(["pinctrl", "get", FEEDBACK_PIN], capture_output=True, text=True)
+            subprocess.run([GPIO_CMD, "set", FEEDBACK_PIN, "ip", "pd"], check=True)
+            result = subprocess.run([GPIO_CMD, "get", FEEDBACK_PIN], capture_output=True, text=True)
             
-            if "hi" in result.stdout:
-                # 正常
+            # 両方のフォーマットに対応
+            if "hi" in result.stdout or "level=1" in result.stdout:
                 set_led("green")
                 time.sleep(5)
             else:
-                # 異常
                 set_led("red")
                 error_msg = "CRITICAL FAILURE: 稼働中に物理的な断線を検知！システムを安全に停止します。"
                 print(error_msg)
